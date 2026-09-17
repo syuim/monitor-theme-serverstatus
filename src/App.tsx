@@ -112,7 +112,7 @@ export default function App() {
       <header className="sticky top-0 z-10 border-b bg-nav shadow-[0_1px_10px_rgb(0_0_0/0.1)]">
         <div className="mx-auto flex h-12 w-[95vw] max-w-[1680px] items-stretch max-md:w-full max-md:px-2">
           <Link href="/" className="mr-5 flex min-w-0 items-center gap-2 text-lg max-sm:mr-1 max-sm:text-base">
-            <img src="/favicon.svg" alt="" className="size-5 shrink-0" />
+            <img src="/favicon.png" alt="" className="size-5 shrink-0" />
             <span className="truncate">{site}</span>
           </Link>
           <nav className="flex shrink-0 items-stretch">
