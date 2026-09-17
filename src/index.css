@@ -32,6 +32,8 @@
   --border: #dddddd;
   --input: #cccccc;
   --ring: #66afe9;
+  /* The header, and through it the colour a phone paints its own bars in: index.html
+     and App.tsx carry the same two values for the browser chrome. */
   --nav: #f9f9f9;
   --chart-1: oklch(0.56 0.09 252);
   --chart-2: oklch(0.62 0.08 162);

@@ -22,6 +22,10 @@ function useTheme() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark)
     localStorage.setItem("theme", dark ? "dark" : "light")
+    // The bars a phone draws around the page are the browser's, not the page's, so
+    // the stylesheet cannot reach them; they take --nav, the header's own colour.
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    if (meta) meta.content = dark ? "#1c2127" : "#f9f9f9"
   }, [dark])
   return [dark, () => setDark((d) => !d)] as const
 }

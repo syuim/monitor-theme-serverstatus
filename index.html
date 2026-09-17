@@ -11,9 +11,17 @@
     <link rel="preload" as="font" type="font/woff2" crossorigin href="https://gw.alipayobjects.com/os/k/font/files/lxgwwenkaiscreenr-subset-119.woff2" />
     <link rel="stylesheet" href="/lxgwwenkai.css" />
     <title>Monitor</title>
+    <!-- The toolbar and status bar a phone draws around the page are the browser's
+         own chrome, outside the document, so only this reaches them. It carries the
+         header's --nav, the colour the page opens with. -->
+    <meta name="theme-color" content="#1c2127" />
     <script>
       // In head, so the dark page is dark on the first paint. Same rule as useTheme.
-      if (localStorage.getItem("theme") !== "light") document.documentElement.classList.add("dark")
+      if (localStorage.getItem("theme") === "light") {
+        document.querySelector('meta[name="theme-color"]').content = "#f9f9f9"
+      } else {
+        document.documentElement.classList.add("dark")
+      }
     </script>
   </head>
   <body>
