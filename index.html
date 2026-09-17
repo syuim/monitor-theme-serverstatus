@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" />
+    <!-- LXGW WenKai Screen R, split into subsets by unicode-range and served from
+         the CDN. The preload is the subset holding the Latin and punctuation the
+         page shows before the CJK ones arrive. -->
+    <link rel="preconnect" href="https://gw.alipayobjects.com" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="https://gw.alipayobjects.com/os/k/font/files/lxgwwenkaiscreenr-subset-119.woff2" />
+    <link rel="stylesheet" href="/lxgwwenkai.css" />
+    <title>Monitor</title>
+    <script>
+      // In head, so the dark page is dark on the first paint. Same rule as useTheme.
+      if (localStorage.getItem("theme") !== "light") document.documentElement.classList.add("dark")
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
