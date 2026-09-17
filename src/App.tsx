@@ -43,7 +43,7 @@ function ToTop() {
     <Button
       variant="ghost"
       size="icon"
-      className="fixed right-3 bottom-5 z-20 size-10 bg-card/85 text-primary shadow-md backdrop-blur hover:bg-card hover:text-primary max-md:bottom-3 max-md:size-9"
+      className="fixed right-3 bottom-5 z-20 mb-[env(safe-area-inset-bottom)] size-10 bg-card/85 text-primary shadow-md backdrop-blur hover:bg-card hover:text-primary max-md:bottom-3 max-md:size-9"
       title="回到顶部"
       onClick={() => scrollTo({ top: 0, behavior: "smooth" })}
     >
@@ -112,8 +112,11 @@ export default function App() {
   if (!me.public_page && !me.authed) return null
 
   return (
-    <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-10 border-b bg-nav shadow-[0_1px_10px_rgb(0_0_0/0.1)]">
+    <div className="flex min-h-svh flex-col pb-[env(safe-area-inset-bottom)]">
+      {/* The top inset is the status bar's own height where the page runs under it:
+          the header's background fills that band, so bar and header are one surface.
+          It is zero wherever there is no such bar, which is every desktop browser. */}
+      <header className="sticky top-0 z-10 border-b bg-nav pt-[env(safe-area-inset-top)] shadow-[0_1px_10px_rgb(0_0_0/0.1)]">
         <div className="mx-auto flex h-12 w-[95vw] max-w-[1680px] items-stretch max-md:w-full max-md:px-2">
           <Link href="/" className="mr-5 flex min-w-0 items-center gap-2 text-lg max-sm:mr-1 max-sm:text-base">
             <img src="/favicon.png" alt="" className="size-5 shrink-0" />

@@ -128,8 +128,12 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  /* Without a reserved gutter, leaving a page taller than the fold widens it. */
-  html { scrollbar-gutter: stable; }
+  /* Without a reserved gutter, leaving a page taller than the fold widens it.
+     color-scheme is which way the OS paints its own glyphs over a translucent
+     status bar, and the scrollbars: it belongs on the element the dark class lands
+     on, which the `dark` variant cannot match. */
+  html { scrollbar-gutter: stable; color-scheme: light; }
+  html.dark { color-scheme: dark; }
   /* The classic theme's webfont, from the subsets public/lxgwwenkai.css names;
      the system stack behind it covers whatever they leave out. */
   body {
