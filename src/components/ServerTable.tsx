@@ -141,7 +141,7 @@ function Line({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function Details({ node }: { node: Node }) {
+function Details({ node, chart }: { node: Node; chart: boolean }) {
   if (!deployed(node)) {
     return <p className="px-4 py-3 text-muted-foreground">尚未接入。在后台生成安装命令并执行一次。</p>
   }
@@ -209,11 +209,17 @@ function Details({ node }: { node: Node }) {
           <span className="text-muted-foreground">网络延迟 · 最近 24 小时</span>
           <Link href={`/node/${node.id}`} className="text-primary hover:underline">查看资源图表 →</Link>
         </div>
-        {/* Fetched when the row opens, from the chart page's chunk, which App
-            warms at start, so the table itself carries no recharts. */}
-        <Suspense fallback={<Skeleton className="h-[280px] @max-3xl:h-[220px]" />}>
-          <Latency id={node.id} className="h-[280px] @max-3xl:h-[220px]" />
-        </Suspense>
+        {/* Mounted once the row has finished opening, so the request and the
+            chart's first paint do not land on the animation. The placeholder
+            holds the height it takes, so nothing shifts when it arrives, and a
+            chart fetched a moment ago is drawn from the cache at once. */}
+        {chart ? (
+          <Suspense fallback={<ChartPlaceholder className={CHART} />}>
+            <Latency id={node.id} className={CHART} />
+          </Suspense>
+        ) : (
+          <ChartPlaceholder className={CHART} />
+        )}
       </div>
     </div>
   )
@@ -226,7 +232,9 @@ function Details({ node }: { node: Node }) {
  */
 function useExpand(open: boolean, ms = 300) {
   const [mounted, setMounted] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  // `grown` opens the body to its height; `settled` marks the height reached.
+  const [grown, setGrown] = useState(false)
+  const [settled, setSettled] = useState(false)
 
   // Mounted in the render the click lands on, not in the effect below: a body
   // added one commit later would be on screen already at full height, with
@@ -237,23 +245,51 @@ function useExpand(open: boolean, ms = 300) {
     if (!open) {
       // Dropped only once it has collapsed, and reset so the next open starts
       // from the closed height again.
-      const timer = setTimeout(() => { setMounted(false); setExpanded(false) }, ms)
+      const timer = setTimeout(() => {
+        setMounted(false)
+        setGrown(false)
+        setSettled(false)
+      }, ms)
       return () => clearTimeout(timer)
     }
     // Two frames, not one: the first paints the body closed, which is the height
     // the transition has to start from.
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => setExpanded(true))
+      frame = requestAnimationFrame(() => setGrown(true))
     })
-    return () => cancelAnimationFrame(frame)
+    // The chart is held back until the height has stopped moving: fetched as the
+    // row opens, its request and first paint land on the animation, and a row
+    // opened and closed within this window never asks at all.
+    const timer = setTimeout(() => setSettled(true), ms + 80)
+    return () => {
+      cancelAnimationFrame(frame)
+      clearTimeout(timer)
+    }
   }, [open, ms])
 
-  return [mounted, open && expanded] as const
+  return { mounted, expanded: open && grown, chart: open && settled }
+}
+
+/** The chart's own height, held open while it loads and while the row expands. */
+const CHART = "h-[280px] @max-3xl:h-[220px]"
+
+/**
+ * The chart's shape before there is a chart: its legend is a row of its own above
+ * the plot, so reserving only the plot would shift everything below by a legend
+ * the moment the line arrives.
+ */
+export function ChartPlaceholder({ className }: { className?: string }) {
+  return (
+    <div className="space-y-2">
+      <Skeleton className="mx-auto h-[26px] w-40" />
+      <Skeleton className={cn("w-full", className)} />
+    </div>
+  )
 }
 
 function Row({ node, index }: { node: Node; index: number }) {
   const [open, setOpen] = useState(false)
-  const [mounted, expanded] = useExpand(open)
+  const { mounted, expanded, chart } = useExpand(open)
   const m = node.online ? node.metrics : null
   const traffic = monthUsage(node)
   // Parity from the node rather than :nth-child, so an opened detail row takes its
@@ -306,7 +342,7 @@ function Row({ node, index }: { node: Node; index: number }) {
                 what lets it close past its contents. */}
             <div className={cn("grid transition-[grid-template-rows] duration-300 ease-out", expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
               <div className="overflow-hidden">
-                <Details node={node} />
+                <Details node={node} chart={chart} />
               </div>
             </div>
           </TableCell>

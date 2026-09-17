@@ -5,7 +5,7 @@ import {
 } from "recharts"
 
 import { Skeleton } from "@/components/ui/skeleton"
-import { deployed, Dot, Flag } from "@/components/ServerTable"
+import { ChartPlaceholder, deployed, Dot, Flag } from "@/components/ServerTable"
 import { api, type Node } from "@/lib/api"
 import {
   axisBytes, axisTop, bytes, clockFor, quarters, rate, timeTicks, uptime,
@@ -105,6 +105,30 @@ function Tab({ active, onClick, children }: { active: boolean; onClick: () => vo
 type History = { metrics: Point[]; ping: PingPoint[]; probes: Probes; loss?: Loss }
 
 /**
+ * The last answer per window, kept for a minute.
+ *
+ * A row remounts its chart every time it is opened, and asking again for a window
+ * that has barely moved would hold one of the hub's four history seats to redraw
+ * what the browser just had. The buckets are minutes wide, so an answer a minute
+ * old is at most one bucket behind. A window read back is drawn at the density it
+ * was fetched at, which is the one thing the key cannot express.
+ */
+const WINDOWS = new Map<string, { at: number; data: History }>()
+const WINDOW_MS = 60_000
+
+function cached(key: string) {
+  const hit = WINDOWS.get(key)
+  return hit && Date.now() - hit.at < WINDOW_MS ? hit.data : null
+}
+
+function remember(key: string, data: History) {
+  const now = Date.now()
+  // Writes also sweep: an entry that has aged out is of no use to anyone.
+  for (const [k, v] of WINDOWS) if (now - v.at >= WINDOW_MS) WINDOWS.delete(k)
+  WINDOWS.set(key, { at: now, data })
+}
+
+/**
  * One window of history.
  *
  * A refused request is kept apart from an empty window. The hub builds at most
@@ -113,18 +137,28 @@ type History = { metrics: Point[]; ping: PingPoint[]; probes: Probes; loss?: Los
  * would misdirect the reader, so callers show it with a retry.
  */
 function useHistory(id: number, hours: number, series: "metrics" | "ping") {
-  const [data, setData] = useState<History | null>(null)
+  const key = `${series}:${id}:${hours}`
+  // Seeded from the cache, so a window still inside its minute is drawn on the
+  // first paint rather than a commit later.
+  const [data, setData] = useState<History | null>(() => cached(key))
   const [failed, setFailed] = useState("")
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
-    let active = true
+    const hit = cached(key)
     // The charts must not continue drawing the old window while the new one is in
-    // flight.
+    // flight, so the previous answer is replaced here: by the cache when it is
+    // still fresh, by nothing -- a skeleton -- when it is not.
     // oxlint-disable-next-line react/set-state-in-effect
-    setData(null)
+    setData(hit)
     // oxlint-disable-next-line react/set-state-in-effect
     setFailed("")
+    if (hit) return
+
+    // Aborted on unmount and on a window change: a row closed mid-flight should
+    // not go on holding a history seat. The fetch itself is what the abort ends;
+    // the state below is left alone once it has been signalled.
+    const controller = new AbortController()
     // What this screen can resolve, in device pixels, which is the unit the line
     // is drawn in: a 1280-wide retina panel has 2560 of them for a day of minutes.
     // Read here rather than from a ref, since the hub only thins further, an
@@ -134,16 +168,23 @@ function useHistory(id: number, hours: number, series: "metrics" | "ping") {
     // Only the half on screen is requested; the other accounted for a third to two
     // thirds of every response and was never drawn.
     const points = Math.round(globalThis.innerWidth * (globalThis.devicePixelRatio || 1))
-    api<History>(`/nodes/${id}/metrics?hours=${hours}&points=${points}&series=${series}`)
-      .then((next) => { if (active) setData(next) })
+    api<History>(`/nodes/${id}/metrics?hours=${hours}&points=${points}&series=${series}`, {
+      signal: controller.signal,
+    })
+      .then((next) => {
+        remember(key, next)
+        if (!controller.signal.aborted) setData(next)
+      })
       .catch((e: Error) => {
         // `|| "..."` as in App.tsx: HTTP/2 dropped statusText, so a bodiless
         // failure from a proxy arrives as the empty string and renders as no
-        // error.
-        if (active) { setFailed(e.message || "网络错误"); setData({ metrics: [], ping: [], probes: {} }) }
+        // error. An aborted fetch is not a failure and is not reported.
+        if (controller.signal.aborted) return
+        setFailed(e.message || "网络错误")
+        setData({ metrics: [], ping: [], probes: {} })
       })
-    return () => { active = false }
-  }, [id, hours, series, attempt])
+    return () => controller.abort()
+  }, [key, id, hours, series, attempt])
 
   return { data, failed, retry: () => setAttempt((n) => n + 1) }
 }
@@ -248,7 +289,7 @@ export function Latency({ id, className }: { id: number; className?: string }) {
     return [...rows.values()].sort((a, b) => a.ts - b.ts)
   }, [pingSeries])
 
-  if (!data) return <Skeleton className={cn("w-full", className)} />
+  if (!data) return <ChartPlaceholder className={className} />
   if (failed) return <Failed message={failed} retry={retry} />
   if (pingSeries.length === 0) {
     return <p className="py-8 text-center text-sm text-muted-foreground">这段时间没有延迟数据</p>
