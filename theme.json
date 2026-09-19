@@ -2,7 +2,7 @@
   "name": "ServerStatus",
   "short": "serverstatus",
   "description": "经典 ServerStatus 紧凑表格，支持暗色",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "syuim",
   "url": "https://github.com/syuim/monitor-theme-serverstatus"
 }

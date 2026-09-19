@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Node } from "@/lib/api"
 import {
   bytes, compact, CYCLES, daysUntil, distro, duration, FOREVER, money, monthUsage, osName, cpuName, pair,
-  percent, rate, uptime,
+  percent, speed, speedRate, uptime,
 } from "@/lib/format"
 import { Link } from "@/lib/route"
 import { cn } from "@/lib/utils"
@@ -181,7 +181,7 @@ function Details({ node, chart }: { node: Node; chart: boolean }) {
 
         <Line label="负载">{m ? m.load.map((n) => n.toFixed(2)).join(" / ") : "—"}</Line>
         <Line label="进程 / 连接">{m ? `${m.procs} · TCP ${m.tcp} · UDP ${m.udp}` : "—"}</Line>
-        <Line label="网速">{m ? `↓ ${rate(m.net_rx)} · ↑ ${rate(m.net_tx)}` : "—"}</Line>
+        <Line label="网速">{m ? `↓ ${speedRate(m.net_rx)} · ↑ ${speedRate(m.net_tx)}` : "—"}</Line>
 
         <Line label="今日流量">{flow(node.day_rx, node.day_tx)}</Line>
         <Line label="本月流量">{flow(node.month_rx, node.month_tx)}</Line>
@@ -318,7 +318,7 @@ function Row({ node, index }: { node: Node; index: number }) {
         <TableCell className={COL.uptime}>{m ? duration(m.uptime) : "—"}</TableCell>
         <TableCell className={COL.expiry}><Expiry node={node} /></TableCell>
         <TableCell className={COL.load}>{m ? m.load[0].toFixed(2) : "—"}</TableCell>
-        <TableCell className={COL.speed}>{m ? `${compact(m.net_rx)} | ${compact(m.net_tx)}` : "— | —"}</TableCell>
+        <TableCell className={COL.speed}>{m ? `${speed(m.net_rx)} | ${speed(m.net_tx)}` : "— | —"}</TableCell>
         <TableCell className={COL.bar}><Bar pct={m ? m.cpu : null} /></TableCell>
         <TableCell className={COL.bar}><Bar pct={m ? percent(m.mem_used, m.mem_total) : null} /></TableCell>
         <TableCell className={COL.bar}><Bar pct={m ? percent(m.disk_used, m.disk_total) : null} /></TableCell>
