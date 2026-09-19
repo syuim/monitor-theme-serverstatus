@@ -63,23 +63,20 @@ export function compact(n: number): string {
 }
 
 /**
- * A speed is read at a floor of 1K: below it the figure is scheduler noise, and
- * a column of "626B | 512B" beside "4.91K" reads as two quantities rather than
- * one measurement. Zero is left alone -- an idle machine has moved nothing, and
- * the floor would report a kilobyte.
+ * A speed under 1K reads as a zero in K rather than in bytes: at that order the
+ * figure is scheduler noise, and "626B | 512B" beside "4.91K" in one column
+ * reads as two quantities rather than one measurement.
  */
 const MIN_SPEED = 1024
 
-const floored = (n: number) => (n > 0 && n < MIN_SPEED ? MIN_SPEED : n)
-
-/** The table's form of a speed. See MIN_SPEED for the floor. */
+/** The table's form of a speed. See MIN_SPEED. */
 export function speed(n: number): string {
-  return compact(floored(n))
+  return n < MIN_SPEED ? "0K" : compact(n)
 }
 
 /** The detail card's form of a speed, which spells the unit out. */
 export function speedRate(n: number): string {
-  return rate(floored(n))
+  return n < MIN_SPEED ? "0.0 KB/s" : rate(n)
 }
 
 /** Distribution and major version only: "Debian GNU/Linux 13 (trixie)" is "Debian 13". */

@@ -109,15 +109,15 @@ eq(compact(1024 ** 3), "1G", "整数不写小数")
 eq(compact(4.914 * 1024), "4.91K", "一位数留两位小数")
 eq(compact(512.4 * 1024 ** 2), "512M", "三位数不留小数")
 
-// speed / speedRate: a speed under 1K reads as 1K instead of in bytes, while
-// zero stays zero rather than claiming a kilobyte.
-eq(speed(0), "0B", "零速仍是零")
-eq(speed(1), "1K", "刚有读数就写 1K")
-eq(speed(1023), "1K", "不足 1K 也写 1K")
+// speed / speedRate: a speed under 1K reads as a zero in K rather than in
+// bytes, so one column never mixes B with K.
+eq(speed(0), "0K", "零速写作 0K")
+eq(speed(1), "0K", "刚有读数也不足 1K")
+eq(speed(1023), "0K", "不足 1K 写作 0K")
 eq(speed(1024), "1K", "正好 1K")
 eq(speed(4.914 * 1024), "4.91K", "1K 以上沿用 compact 的写法")
-eq(speedRate(0), "0 B/s", "零速仍是零")
-eq(speedRate(626), "1.0 KB/s", "不足 1K 不写 B/s")
+eq(speedRate(0), "0.0 KB/s", "零速写作 0.0 KB/s")
+eq(speedRate(626), "0.0 KB/s", "不足 1K 不写 B/s")
 eq(speedRate(4.914 * 1024), "4.9 KB/s", "1K 以上沿用 rate 的写法")
 
 eq(distro("Debian GNU/Linux 13 (trixie)"), "Debian 13", "Debian 只留主版本")
