@@ -109,11 +109,34 @@ export function useNodes() {
     let retry: ReturnType<typeof setTimeout> | null = null
     let closed = false
 
-    const receive = (list: Node[]) => {
+    const apply = (list: Node[]) => {
       setNodes(safeNodes(list))
       setError(null)
       setClosed(false)
     }
+
+    // The hub pushes every two seconds, and a hidden tab pays for each of those
+    // renders -- the whole table, or the open detail page with its four charts.
+    // The newest payload is held instead, and applied when the page is looked at
+    // again, which is when drawing it is worth anything.
+    let held: Node[] | null = null
+
+    const receive = (list: Node[]) => {
+      if (document.hidden) {
+        held = list
+        return
+      }
+      held = null
+      apply(list)
+    }
+
+    const onVisible = () => {
+      if (document.hidden || !held) return
+      const list = held
+      held = null
+      apply(list)
+    }
+    document.addEventListener("visibilitychange", onVisible)
 
     const fetchOnce = () =>
       api<{ nodes: Node[] }>("/nodes")
