@@ -115,6 +115,23 @@ export function percent(used: number, total: number): number {
   return total > 0 ? Math.min(100, (used / total) * 100) : 0
 }
 
+/**
+ * The mean of each bucket's loss across `[from, to]`, in epoch seconds as the
+ * hub stamps its samples, or null when the span holds no bucket at all.
+ *
+ * A brushed span asks for this, and the hub cannot answer it: its per-bucket
+ * rows carry no sample counts, and its one accurate figure -- lost samples over
+ * total ones -- covers the whole window by construction. The mean is exact where
+ * every bucket holds the same count, which a probe reporting once a minute over
+ * a minute-wide bucket does, and overstates a sparse bucket where they differ: a
+ * probe that went quiet through one leaves a single timed-out sample under a
+ * percentage the mean cannot discount.
+ */
+export function meanLoss(points: readonly { ts: number; loss?: number }[], from: number, to: number): number | null {
+  const within = points.filter((p) => p.ts >= from && p.ts <= to)
+  return within.length ? within.reduce((sum, p) => sum + (p.loss ?? 0), 0) / within.length : null
+}
+
 export function uptime(seconds: number): string {
   if (!seconds) return "—"
   const d = Math.floor(seconds / 86400)

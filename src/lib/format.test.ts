@@ -4,8 +4,8 @@
 //
 // Nothing imports it, so the bundle never includes it.
 import {
-  axisBytes, axisTop, bytes, compact, cpuName, daysUntil, distro, duration, monthUsage, osName, pair, quarters,
-  speed, speedRate, timeTicks, uptime,
+  axisBytes, axisTop, bytes, compact, cpuName, daysUntil, distro, duration, meanLoss, monthUsage, osName, pair,
+  quarters, speed, speedRate, timeTicks, uptime,
 } from "./format.ts"
 
 let failed = 0
@@ -140,6 +140,16 @@ eq(duration(76 * 86400 + 5), "76 天", "超过一天只写天数")
 
 eq(osName("Debian GNU/Linux 12 (bookworm)"), "Debian 12", "发行版名去掉代号")
 eq(cpuName("Intel(R) Xeon(R) CPU E5-2680 8-Core Processor"), "Intel Xeon E5-2680", "CPU 名去掉商标和核数")
+
+// meanLoss: 刷选条选区内的丢包率，按桶等权——样本数不在 bucket 行里，无法按样本加权。
+// 区间内一个桶都没有时返回 null：「没有数据」不等于「没有丢包」。
+{
+  const ping = [{ ts: 100, loss: 100 }, { ts: 160, loss: 50 }, { ts: 220 }]
+  eq(meanLoss(ping, 100, 220), 50, "三个桶的均值，缺 loss 的桶按 0 计")
+  eq(meanLoss(ping, 100, 160), 75, "区间端点都算在内")
+  eq(meanLoss(ping, 161, 219), null, "区间内没有桶")
+  eq(meanLoss(ping, 220, 220), 0, "无丢包的桶按 0 返回而不是 null")
+}
 
 if (failed) {
   console.error(`\n${failed} 项不通过`)

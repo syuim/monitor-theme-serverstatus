@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ChartPlaceholder, deployed, Dot, Flag } from "@/components/ServerTable"
 import { api, type Node } from "@/lib/api"
 import {
-  axisBytes, axisTop, bytes, clockFor, quarters, rate, timeTicks, uptime,
+  axisBytes, axisTop, bytes, clockFor, meanLoss, quarters, rate, timeTicks, uptime,
 } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -296,12 +296,19 @@ export function Latency({ id, className }: { id: number; className?: string }) {
   }
   const last = pingRows.length - 1
   const [from, to] = zoom?.of === data ? zoom.range.map((i) => Math.min(i, last)) : [0, last]
+  // A brush still covering the whole window is not a selection: the legend keeps
+  // the hub's figure until a span is actually narrowed.
+  const brushed = from > 0 || to < last
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-center gap-1.5">
         {pingSeries.map((s) => {
           const shown = !hiddenProbes.includes(s.id)
+          // The hub's figure covers the whole window, so the legend follows the
+          // brush's span once one is narrowed. `null` -- the probe has no bucket
+          // in that span -- renders as a dash below.
+          const loss = brushed ? meanLoss(s.points, pingRows[from].ts / 1_000, pingRows[to].ts / 1_000) : s.loss
           return (
             <button
               key={s.id}
@@ -321,7 +328,7 @@ export function Latency({ id, className }: { id: number; className?: string }) {
                   dropping half its packets draws like a healthy one. Anything
                   under a tenth is written as such rather than rounded to 0.0. */}
               <span className="tabular-nums opacity-60">
-                {s.loss > 0 && s.loss < 0.1 ? "<0.1" : s.loss.toFixed(1)}%
+                {loss === null ? "—" : `${loss > 0 && loss < 0.1 ? "<0.1" : loss.toFixed(1)}%`}
               </span>
             </button>
           )
