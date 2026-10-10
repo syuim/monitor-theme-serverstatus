@@ -95,7 +95,16 @@ export default function App() {
     if (me && !me.public_page && !me.authed) location.href = "/admin/"
   }, [me])
 
-  const sorted = [...(nodes ?? [])].sort((a, b) => a.sort - b.sort || a.id - b.id)
+  // Offline for over a day: long enough to be a decommission rather than a blip,
+  // and the row would otherwise sit dead against the hub's own sort order. The
+  // cutoff uses the freshest render time, and a node that never reported has
+  // last_seen 0, so it is hidden as well.
+  const now = Date.now() / 1000
+  const sorted = (nodes ?? [])
+    .filter((n) => n.online || now - n.last_seen <= 24 * 60 * 60)
+    // Offline nodes sink below the live ones; the hub's ordering holds within
+    // each group, since a sort is stable in every engine the build targets.
+    .sort((a, b) => Number(b.online) - Number(a.online) || a.sort - b.sort || a.id - b.id)
   const selected = sorted.find((n) => n.id === open)
   const site = me?.site_name || "Monitor"
 
