@@ -113,6 +113,22 @@ function Expiry({ node }: { node: Node }) {
 }
 
 /**
+ * A live speed pair. The pipe sits in a fixed centre column with the two rates
+ * growing outward from it, so it stays put while the numbers beside it change
+ * every push; rendered as one string they shift it from side to side.
+ */
+export function SpeedCell({ node }: { node: Node }) {
+  const m = node.online ? node.metrics : null
+  return (
+    <span className="mx-auto grid w-full grid-cols-[1fr_auto_1fr] items-center">
+      <span className="tnum min-w-0 text-right">{m ? speed(m.net_rx) : "—"}</span>
+      <span className="px-1 text-muted-foreground">|</span>
+      <span className="tnum min-w-0 text-left">{m ? speed(m.net_tx) : "—"}</span>
+    </span>
+  )
+}
+
+/**
  * Column widths and what folds away, applied to the header and every cell alike.
  * The panel is the container, so the table follows its own width rather than the
  * viewport's. Below 768px it switches to a fixed layout that fits a phone without
@@ -318,7 +334,7 @@ function Row({ node, index }: { node: Node; index: number }) {
         <TableCell className={COL.uptime}>{m ? duration(m.uptime) : "—"}</TableCell>
         <TableCell className={COL.expiry}><Expiry node={node} /></TableCell>
         <TableCell className={COL.load}>{m ? m.load[0].toFixed(2) : "—"}</TableCell>
-        <TableCell className={COL.speed}>{m ? `${speed(m.net_rx)} | ${speed(m.net_tx)}` : "— | —"}</TableCell>
+        <TableCell className={COL.speed}><SpeedCell node={node} /></TableCell>
         <TableCell className={COL.bar}><Bar pct={m ? m.cpu : null} /></TableCell>
         <TableCell className={COL.bar}><Bar pct={m ? percent(m.mem_used, m.mem_total) : null} /></TableCell>
         <TableCell className={COL.bar}><Bar pct={m ? percent(m.disk_used, m.disk_total) : null} /></TableCell>
